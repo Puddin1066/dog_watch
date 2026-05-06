@@ -1,0 +1,34 @@
+services:
+  # MOCK RTSP: synthetic stream for Frigate until a real E1 Pro (or other) camera is on the LAN.
+  # docker compose --profile mock-rtsp up -d
+  mock_rtsp:
+    profiles: ["mock-rtsp"]
+    image: bluenviron/mediamtx:1-ffmpeg
+    container_name: mock_rtsp
+    restart: unless-stopped
+    volumes:
+      - ./config/mediamtx.yml:/mediamtx.yml:ro
+
+  frigate:
+    image: ghcr.io/blakeblackshear/frigate:stable
+    container_name: frigate
+    privileged: true
+    restart: unless-stopped
+    shm_size: "256mb"
+    # Use 8971 on the host: Frigate's authenticated UI/API. Do NOT remap container 5000 to a
+    # different host port — nginx auth subrequests break (Host port != internal 5000).
+    # macOS AirPlay Receiver often uses host :5000; avoid publishing Frigate there.
+    ports:
+      - "8971:8971"
+      - "8554:8554"
+      - "8555:8555/tcp"
+      - "8555:8555/udp"
+    volumes:
+      - ./config:/config
+      - ./storage/frigate:/media/frigate
+    environment:
+      CAMERA_USERNAME: "${CAMERA_USERNAME}"
+      CAMERA_RTSP_PASSWORD: "${CAMERA_RTSP_PASSWORD}"
+      CAMERA_IP: "${CAMERA_IP}"
+      CAMERA_RTSP_PORT: "${CAMERA_RTSP_PORT:-554}"
+      CAMERA_RTSP_PATH: "${CAMERA_RTSP_PATH}"

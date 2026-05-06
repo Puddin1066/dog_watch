@@ -1,0 +1,25 @@
+.env
+.env.local
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+logs/*.log
+storage/frigate/*
+!storage/frigate/.gitkeep
+storage/snapshots/*
+!storage/snapshots/.gitkeep
+
+# Frigate / MediaMTX runtime under ./config (bind mount; secrets and DBs)
+config/*.db
+config/*.db-*
+config/*.bak*
+config/backup.db
+config/.exports
+config/.jwt_secret
+config/.search_stats.json
+config/.timeline
+config/.vacuum
+config/config.yaml
+config/go2rtc_homekit.yml
+config/model_cache/

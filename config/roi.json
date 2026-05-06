@@ -1,0 +1,9 @@
+{
+  "polygon": [
+    [0.1, 0.55],
+    [0.9, 0.55],
+    [0.95, 0.95],
+    [0.05, 0.95]
+  ],
+  "_comment": "Normalized 0–1 coordinates (x,y). Edit to match your lawn in the frame."
+}

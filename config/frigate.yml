@@ -1,0 +1,47 @@
+mqtt:
+  enabled: false
+
+# Leave default (auth on) so Frigate creates a bootstrap admin user on first DB init.
+# UI/API: https://localhost:8971 — credentials in .env (FRIGATE_USERNAME / FRIGATE_PASSWORD).
+#
+# RTSP source (env from docker-compose):
+# - Reolink E1 Pro (LAN): CAMERA_IP=camera host, CAMERA_RTSP_PORT=554,
+#   CAMERA_RTSP_PATH=h264Preview_01_main (or sub per Reolink docs), CAMERA_RTSP_PASSWORD URL-encoded.
+# - MOCK dev stream: docker compose --profile mock-rtsp up -d — defaults in compose point at
+#   mock_rtsp:8554/e1pro-mock (see config/mediamtx.yml). [MOCK] not a real camera.
+
+cameras:
+  lawn_cam:
+    ffmpeg:
+      inputs:
+        - path: rtsp://{CAMERA_USERNAME}:{CAMERA_RTSP_PASSWORD}@{CAMERA_IP}:{CAMERA_RTSP_PORT}/{CAMERA_RTSP_PATH}
+          roles:
+            - detect
+            - record
+
+    detect:
+      width: 1280
+      height: 720
+      fps: 8
+
+    snapshots:
+      enabled: true
+      bounding_box: true
+      crop: false
+      retain:
+        default: 3
+
+    objects:
+      track:
+        - dog
+        - person
+      filters:
+        dog:
+          min_area: 1500
+          threshold: 0.55
+
+    zones:
+      front_lawn:
+        coordinates: 100,500,800,500,900,700,50,700
+        objects:
+          - dog
