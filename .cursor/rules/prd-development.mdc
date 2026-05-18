@@ -1,0 +1,15 @@
+---
+description: PRD v2 dog-alert — scope, mocks, and validation
+alwaysApply: true
+---
+
+# PRD-driven development
+
+- **Requirements:** `docs/PRD.md` and `docs/BACKLOG.md` before coding.
+- **MVP path:** `scripts/lawn_alert.py` + HTTP/MOCK snapshots — not Frigate-first.
+- **Phase 2:** Frigate + RTSP only for E1 Pro / Hub / `mock-rtsp` profile.
+- **Never** assume standalone Reolink E1 has LAN RTSP.
+- Label synthetic data with **`[MOCK]`** in logs/messages when `MOCK_MODE` or mock RTSP.
+- Do not commit `.env`, `.env.local`, `.venv/`, or `config/*.db`.
+- After changes: run `./scripts/validate_dev.sh` from repo root.
+- Match existing Python style; extend `env_util.load_project_env` for env loading.

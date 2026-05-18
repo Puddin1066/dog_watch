@@ -14,7 +14,8 @@ cameras:
   lawn_cam:
     ffmpeg:
       inputs:
-        - path: rtsp://{FRIGATE_CAMERA_USERNAME}:{FRIGATE_CAMERA_RTSP_PASSWORD}@{FRIGATE_CAMERA_IP}:{FRIGATE_CAMERA_RTSP_PORT}/{FRIGATE_CAMERA_RTSP_PATH}
+        - path: 
+            rtsp://{FRIGATE_CAMERA_USERNAME}:{FRIGATE_CAMERA_RTSP_PASSWORD}@{FRIGATE_CAMERA_IP}:{FRIGATE_CAMERA_RTSP_PORT}/{FRIGATE_CAMERA_RTSP_PATH}
           roles:
             - detect
             - record
@@ -51,3 +52,4 @@ cameras:
         objects:
           - dog
           - person
+version: 0.17-0

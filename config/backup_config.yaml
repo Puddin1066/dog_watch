@@ -14,13 +14,12 @@ cameras:
   lawn_cam:
     ffmpeg:
       inputs:
-        - path: rtsp://{FRIGATE_CAMERA_USERNAME}:{FRIGATE_CAMERA_RTSP_PASSWORD}@{FRIGATE_CAMERA_IP}:{FRIGATE_CAMERA_RTSP_PORT}/{FRIGATE_CAMERA_RTSP_PATH}
+        - path: rtsp://{CAMERA_USERNAME}:{CAMERA_RTSP_PASSWORD}@{CAMERA_IP}:{CAMERA_RTSP_PORT}/{CAMERA_RTSP_PATH}
           roles:
             - detect
             - record
 
     detect:
-      enabled: true
       width: 1280
       height: 720
       fps: 8
@@ -38,16 +37,11 @@ cameras:
         - person
       filters:
         dog:
-          min_area: 150
-          min_score: 0.35
-          threshold: 0.25
-        person:
-          min_area: 200
-          threshold: 0.3
+          min_area: 1500
+          threshold: 0.55
 
     zones:
       front_lawn:
         coordinates: 100,500,800,500,900,700,50,700
         objects:
           - dog
-          - person

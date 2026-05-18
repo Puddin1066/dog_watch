@@ -2,7 +2,9 @@
 
 Local-first lawn alerts: **PRD v2** (HTTP snapshots + ROI motion) and **Phase 2** (Frigate + RTSP, e.g. **Reolink E1 Pro** or a **mock RTSP** dev stream).
 
-**PRD:** [`../reolink_e_1_frigate_imessage_dog_alert_prd.md`](../reolink_e_1_frigate_imessage_dog_alert_prd.md)
+**PRD:** [`docs/PRD.md`](docs/PRD.md) (copy of parent [`../reolink_e_1_frigate_imessage_dog_alert_prd.md`](../reolink_e_1_frigate_imessage_dog_alert_prd.md))
+
+**AI / Codex:** read [`AGENTS.md`](AGENTS.md) → [`docs/BACKLOG.md`](docs/BACKLOG.md) → [`docs/CODEX.md`](docs/CODEX.md). Validate with `./scripts/validate_dev.sh`.
 
 ---
 
@@ -82,3 +84,10 @@ Use this until the **E1 Pro** is on the LAN. **MediaMTX** publishes `rtsp://mock
 | `config/roi.json` | v2 lawn polygon |
 
 More detail: **`docs/setup.md`**, **`docs/troubleshooting.md`**.
+
+## Codex / agent workflow
+
+1. Open this repo root in Codex (or Cursor with `AGENTS.md`).
+2. `cp .env.example .env` and keep **`MOCK_MODE=true`** / **`IMESSAGE_DRY_RUN=true`** until hardware is ready.
+3. Run **`./scripts/validate_dev.sh`** after each task.
+4. Implement the next **`todo`** in **`docs/BACKLOG.md`**; update checkboxes when done.

@@ -27,6 +27,7 @@ class Settings:
     frigate_username: str
     frigate_password: str
     target_zone: str
+    target_labels: tuple[str, ...]
     min_duration_seconds: float
     alert_cooldown_seconds: int
     poll_interval_seconds: int
@@ -39,11 +40,18 @@ class Settings:
 
 def get_settings() -> Settings:
     load_project_env(project_root())
+    target_labels_raw = os.getenv("TARGET_LABELS", "dog")
+    target_labels = tuple(
+        label.strip().lower()
+        for label in target_labels_raw.split(",")
+        if label.strip()
+    ) or ("dog",)
     return Settings(
         frigate_base_url=os.getenv("FRIGATE_BASE_URL", "https://localhost:8971"),
         frigate_username=os.getenv("FRIGATE_USERNAME", ""),
         frigate_password=os.getenv("FRIGATE_PASSWORD", ""),
         target_zone=os.getenv("TARGET_ZONE", "front_lawn"),
+        target_labels=target_labels,
         min_duration_seconds=float(os.getenv("MIN_EVENT_DURATION_SECONDS", "5")),
         alert_cooldown_seconds=int(os.getenv("ALERT_COOLDOWN_SECONDS", "180")),
         poll_interval_seconds=int(os.getenv("POLL_INTERVAL_SECONDS", "2")),
@@ -207,6 +215,7 @@ class AlertProcessor:
 
     def _handle_event(self, event: dict[str, Any]) -> None:
         event_id = str(event.get("id", ""))
+        event_label = str(event.get("label") or "object").lower()
         if not event_id or event_id in self.processed_ids:
             return
 
@@ -227,7 +236,7 @@ class AlertProcessor:
         logging.info("Snapshot saved to %s", snapshot_path)
 
         prefix = "[MOCK] " if self.settings.mock_mode else ""
-        message = f"{prefix}Possible dog event detected on front lawn."
+        message = f"{prefix}Possible {event_label} event detected on front lawn."
         if self.settings.imessage_dry_run:
             logging.info(
                 "%s[DRY_RUN] iMessage skipped for event id=%s target=%s",
@@ -243,14 +252,16 @@ class AlertProcessor:
         self.processed_ids.add(event_id)
 
     def _qualifies(self, event: dict[str, Any]) -> bool:
-        label = event.get("label")
+        label = str(event.get("label") or "").lower()
         zones = event.get("zones", [])
         start_time = float(event.get("start_time") or 0)
         end_time = float(event.get("end_time") or time.time())
         duration = max(0.0, end_time - start_time)
-        has_zone = self.settings.target_zone in zones
+        has_zone = (
+            self.settings.target_zone in zones if self.settings.target_zone.strip() else True
+        )
         return (
-            label == "dog"
+            label in self.settings.target_labels
             and has_zone
             and duration >= self.settings.min_duration_seconds
             and bool(event.get("has_snapshot", True))
