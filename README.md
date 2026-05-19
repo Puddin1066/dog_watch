@@ -91,3 +91,13 @@ More detail: **`docs/setup.md`**, **`docs/troubleshooting.md`**.
 2. `cp .env.example .env` and keep **`MOCK_MODE=true`** / **`IMESSAGE_DRY_RUN=true`** until hardware is ready.
 3. Run **`./scripts/validate_dev.sh`** after each task.
 4. Implement the next **`todo`** in **`docs/BACKLOG.md`**; update checkboxes when done.
+
+---
+
+## Public repo basics
+
+- License: **MIT** (`LICENSE`)
+- Contributing guide: `CONTRIBUTING.md`
+- Security reporting policy: `SECURITY.md`
+- Community standards: `CODE_OF_CONDUCT.md`
+- CI: GitHub Actions workflow in `.github/workflows/ci.yml`

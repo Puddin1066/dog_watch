@@ -5,6 +5,8 @@ __pycache__/
 *.pyc
 .DS_Store
 logs/*.log
+scripts/logs/
+scripts/storage/
 storage/frigate/*
 !storage/frigate/.gitkeep
 storage/snapshots/*

@@ -1,0 +1,48 @@
+name: Bug report
+description: Report a reproducible bug
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug. Please include enough detail to reproduce.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe expected vs actual behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+      description: Include exact commands and env flags (redact secrets).
+      placeholder: |
+        1. Set MOCK_MODE=...
+        2. Run ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: input
+    id: commit
+    attributes:
+      label: Commit / branch
+      placeholder: e.g. main @ abc1234
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Running mode
+      options:
+        - MOCK_MODE=true
+        - MOCK_MODE=false
+        - Unsure
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Paste sanitized logs. Remove tokens, phone numbers, and passwords.
+      render: shell

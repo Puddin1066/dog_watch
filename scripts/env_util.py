@@ -12,6 +12,7 @@ def project_root() -> Path:
 
 def load_project_env(root: Path | None = None) -> None:
     base = root or project_root()
+    preexisting = set(os.environ.keys())
     for name in (".env", ".env.local"):
         path = base / name
         if not path.exists():
@@ -21,4 +22,7 @@ def load_project_env(root: Path | None = None) -> None:
             if not line or line.startswith("#") or "=" not in line:
                 continue
             key, value = line.split("=", 1)
-            os.environ[key.strip()] = value.strip()
+            key = key.strip()
+            if key in preexisting:
+                continue
+            os.environ[key] = value.strip()
