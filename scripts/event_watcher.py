@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 import time
 import argparse
 from dataclasses import dataclass
@@ -36,6 +37,10 @@ class Settings:
     log_file: Path
     mock_mode: bool
     imessage_dry_run: bool
+    allow_person_proxy_alerts: bool
+    poll_error_reset_threshold: int
+    poll_error_restart_threshold: int
+    process_backlog_on_start: bool
 
 
 def get_settings() -> Settings:
@@ -60,6 +65,12 @@ def get_settings() -> Settings:
         log_file=Path(os.getenv("LOG_FILE", "./logs/alerts.log")),
         mock_mode=os.getenv("MOCK_MODE", "false").lower() == "true",
         imessage_dry_run=os.getenv("IMESSAGE_DRY_RUN", "false").lower() == "true",
+        allow_person_proxy_alerts=os.getenv("ALLOW_PERSON_PROXY_ALERTS", "false").lower()
+        == "true",
+        poll_error_reset_threshold=int(os.getenv("POLL_ERROR_RESET_THRESHOLD", "5")),
+        poll_error_restart_threshold=int(os.getenv("POLL_ERROR_RESTART_THRESHOLD", "20")),
+        process_backlog_on_start=os.getenv("PROCESS_BACKLOG_ON_START", "false").lower()
+        == "true",
     )
 
 
@@ -105,6 +116,16 @@ class HttpFrigateClient:
         self._session = requests.Session()
         self._session_logged_in = False
         self._bearer_token: str | None = None
+
+    def reset_connection(self) -> None:
+        """Reset auth/session state after repeated transient transport errors."""
+        try:
+            self._session.close()
+        except Exception:
+            pass
+        self._session = requests.Session()
+        self._session_logged_in = False
+        self._bearer_token = None
 
     def _ensure_login(self) -> None:
         if self._session_logged_in:
@@ -194,23 +215,65 @@ class AlertProcessor:
         self.client = client
         self.last_alert_at = 0.0
         self.processed_ids: set[str] = set()
+        self.started_at = time.time()
+        self.current_poll_dog_keys: set[str] = set()
 
     def run_forever(self) -> None:
         logging.info("Watcher started. mock_mode=%s", self.settings.mock_mode)
         if self.settings.mock_mode:
             logging.info("[MOCK] Mock event source enabled.")
 
+        consecutive_poll_errors = 0
         while True:
             try:
-                for event in self.client.get_recent_events():
+                events = self.client.get_recent_events()
+                self.current_poll_dog_keys = {
+                    self._event_key(event)
+                    for event in events
+                    if str(event.get("label") or "").lower() == "dog"
+                }
+                for event in events:
                     self._handle_event(event)
+                consecutive_poll_errors = 0
             except Exception as exc:
-                logging.exception("Error while polling Frigate events: %s", exc)
+                consecutive_poll_errors += 1
+                logging.exception(
+                    "Error while polling Frigate events (consecutive=%s): %s",
+                    consecutive_poll_errors,
+                    exc,
+                )
+
+                if (
+                    consecutive_poll_errors >= self.settings.poll_error_reset_threshold
+                    and hasattr(self.client, "reset_connection")
+                ):
+                    logging.warning(
+                        "Resetting Frigate HTTP session after %s consecutive poll errors.",
+                        consecutive_poll_errors,
+                    )
+                    try:
+                        # Attribute-guarded above: only HttpFrigateClient exposes this.
+                        self.client.reset_connection()  # type: ignore[attr-defined]
+                    except Exception as reset_exc:
+                        logging.exception("Failed to reset Frigate client session: %s", reset_exc)
+
+                if consecutive_poll_errors >= self.settings.poll_error_restart_threshold:
+                    logging.error(
+                        "Self-restarting watcher after %s consecutive poll errors.",
+                        consecutive_poll_errors,
+                    )
+                    os.execv(sys.executable, [sys.executable, *sys.argv])
             time.sleep(self.settings.poll_interval_seconds)
 
     def run_once(self) -> None:
         logging.info("Watcher one-shot run started. mock_mode=%s", self.settings.mock_mode)
-        for event in self.client.get_recent_events():
+        events = self.client.get_recent_events()
+        self.current_poll_dog_keys = {
+            self._event_key(event)
+            for event in events
+            if str(event.get("label") or "").lower() == "dog"
+        }
+        for event in events:
             self._handle_event(event)
 
     def _handle_event(self, event: dict[str, Any]) -> None:
@@ -218,6 +281,15 @@ class AlertProcessor:
         event_label = str(event.get("label") or "object").lower()
         if not event_id or event_id in self.processed_ids:
             return
+
+        if not self.settings.process_backlog_on_start:
+            event_end = float(event.get("end_time") or 0)
+            event_start = float(event.get("start_time") or 0)
+            newest_event_ts = max(event_end, event_start)
+            if newest_event_ts and newest_event_ts < self.started_at:
+                logging.info("Skipped stale pre-start event id=%s", event_id)
+                self.processed_ids.add(event_id)
+                return
 
         if not self._qualifies(event):
             logging.info("Skipped non-qualifying event id=%s", event_id)
@@ -253,6 +325,14 @@ class AlertProcessor:
 
     def _qualifies(self, event: dict[str, Any]) -> bool:
         label = str(event.get("label") or "").lower()
+        person_proxy_allowed = (
+            label == "person"
+            and self.settings.allow_person_proxy_alerts
+            and self._event_key(event) in self.current_poll_dog_keys
+        )
+        label_is_allowed = label == "dog" or person_proxy_allowed
+        if not label_is_allowed:
+            return False
         zones = event.get("zones", [])
         start_time = float(event.get("start_time") or 0)
         end_time = float(event.get("end_time") or time.time())
@@ -266,6 +346,13 @@ class AlertProcessor:
             and duration >= self.settings.min_duration_seconds
             and bool(event.get("has_snapshot", True))
         )
+
+    def _event_key(self, event: dict[str, Any]) -> str:
+        event_id = str(event.get("id") or "")
+        if event_id and "-" in event_id:
+            return event_id.split("-", 1)[0]
+        start_time = event.get("start_time")
+        return str(start_time) if start_time is not None else event_id
 
 
 def main() -> None:

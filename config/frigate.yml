@@ -21,9 +21,9 @@ cameras:
 
     detect:
       enabled: true
-      width: 1280
-      height: 720
-      fps: 8
+      width: 960
+      height: 540
+      fps: 2
 
     snapshots:
       enabled: true
@@ -38,12 +38,12 @@ cameras:
         - person
       filters:
         dog:
-          min_area: 150
-          min_score: 0.35
-          threshold: 0.25
+          min_area: 50
+          min_score: 0.15
+          threshold: 0.15
         person:
-          min_area: 200
-          threshold: 0.3
+          min_area: 2500
+          threshold: 0.6
 
     zones:
       front_lawn:
